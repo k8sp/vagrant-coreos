@@ -26,14 +26,28 @@ if [[ ! -d coreos-kubernetes ]]; then
     )
 fi
 
-# Start the virtual cluster.
 cd coreos-kubernetes/multi-node/vagrant
-vagrant up
 
 # Configure kubectl.
 export KUBECONFIG="$(pwd)/kubeconfig"
 kubectl config use-context vagrant-multi
 
+# Start the virtual cluster.  # You can run vagrant up multiple times
+# safely.
+vagrant up
+
 echo "Waiting for the cluster to startup"
+# TODO(y): It is hacky here.  We don't want to wait if the cluster has been up.
 sleep 10
 kubectl get nodes
+
+
+# Now, run a deployment nginx
+kubectl run nginx --image=nginx --port=80
+if [[ `kubectl get pods -l run=nginx | wc -l | awk '{print $1;}'` == "2" ]]; then
+    echo "Pods started"
+    if [[ `kubectl get deployments -l run=nginx | wc -l | awk '{print $1;}'` == "0" ]]; then
+	echo "But no deployments!?"
+    fi
+fi
+
