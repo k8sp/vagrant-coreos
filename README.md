@@ -28,3 +28,6 @@ The last few lines in the [bash script](./run.sh) creates a Wildfly
 pod and expose it by creating a NodePort typed service.  The script
 also shows how to find out the VM that runs the Wildfly pod so to
 access the Wildfly service from outside of the VM cluster.
+
+TODO: Figure out how to create a load balancer for a bare-metal
+cluster.
