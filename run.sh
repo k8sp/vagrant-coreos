@@ -1,3 +1,7 @@
+# This trial is mainly based on
+# https://coreos.com/kubernetes/docs/latest/kubernetes-on-vagrant.html
+# and http://rafabene.com/2015/11/11/how-expose-kubernetes-services/.
+
 if [[ ! -f ./`basename $0` ]]; then
     echo "Please run this program in the directory where it resides."
     exit
@@ -13,15 +17,16 @@ if [[ `which kubectl` == "" ]]; then
 	fi
 	chmod +x kubectl
     fi
-    export PATH=`pwd`:$PATH
 fi
+
+export PATH=`pwd`:$PATH
 
 # Download Vagrant configurations.
 if [[ ! -d coreos-kubernetes ]]; then
     git clone https://github.com/coreos/coreos-kubernetes.git
     (
 	cd coreos-kubernetes/multi-node/vagrant
-	mv config.rb.sample config.rb # Use default config.p
+	cp config.rb.sample config.rb # Use default config.
 	vagrant box update
     )
 fi
@@ -36,18 +41,15 @@ kubectl config use-context vagrant-multi
 # safely.
 vagrant up
 
-echo "Waiting for the cluster to startup"
-# TODO(y): It is hacky here.  We don't want to wait if the cluster has been up.
-sleep 10
-kubectl get nodes
+echo "Waiting for the cluster to startup for 3 minutes ..."
+sleep 360 # It is hacky here. Find someway to way until the Kubernetes cluster starts.
 
+# Now, create an application.  The following YARML files come from
+# http://rafabene.com/2015/11/11/how-expose-kubernetes-services/.
+kubectl create -f example.yaml
+kubectl create -f service.yaml
 
-# Now, run a deployment nginx
-kubectl run nginx --image=nginx --port=80
-if [[ `kubectl get pods -l run=nginx | wc -l | awk '{print $1;}'` == "2" ]]; then
-    echo "Pods started"
-    if [[ `kubectl get deployments -l run=nginx | wc -l | awk '{print $1;}'` == "0" ]]; then
-	echo "But no deployments!?"
-    fi
-fi
+POD_IP=$(kubectl get nodes | grep Ready | grep -v SchedulingDisabled | awk '{print $1;}')
+SVC_PORT=$(kubectl describe service wildfly-service | grep 'NodePort:' | awk '{print $3;}' | cut -f 1 -d '/')
+curl http://$POD_IP:$SVC_PORT/employees/
 
