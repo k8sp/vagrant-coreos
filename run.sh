@@ -33,6 +33,9 @@ if [[ ! -d coreos-kubernetes ]]; then
 fi
 
 cd coreos-kubernetes/multi-node/vagrant
+# Change to CoreOS's beta channel because there's an unknown problem with the alpha channel that
+# may hang the downloading progress of the Kubernetes docker images.
+sed -i -e 's#$update_channel[[:space:]]*=[[:space:]]*"alpha"#$update_channel = "beta"#' Vagrantfile
 
 # Configure kubectl.
 export KUBECONFIG="$(pwd)/kubeconfig"
@@ -42,7 +45,7 @@ kubectl config use-context vagrant-multi
 # safely.
 vagrant up
 
-echo "Waiting for the cluster to startup for 3 minutes ..."
+echo "Waiting for the cluster to startup for 6 minutes ..."
 sleep 360 # It is hacky here. Find someway to way until the Kubernetes cluster starts.
 
 # Now, create an application.  The following YARML files come from
