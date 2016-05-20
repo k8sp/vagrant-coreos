@@ -19,7 +19,8 @@ if [[ `which kubectl` == "" ]]; then
     fi
 fi
 
-export PATH=`pwd`:$PATH
+workdir=`pwd`
+export PATH=$workdir:$PATH
 
 # Download Vagrant configurations.
 if [[ ! -d coreos-kubernetes ]]; then
@@ -46,8 +47,8 @@ sleep 360 # It is hacky here. Find someway to way until the Kubernetes cluster s
 
 # Now, create an application.  The following YARML files come from
 # http://rafabene.com/2015/11/11/how-expose-kubernetes-services/.
-kubectl create -f example.yaml
-kubectl create -f service.yaml
+kubectl create -f $workdir/example.yaml
+kubectl create -f $workdir/service.yaml
 
 POD_IP=$(kubectl get nodes | grep Ready | grep -v SchedulingDisabled | awk '{print $1;}')
 SVC_PORT=$(kubectl describe service wildfly-service | grep 'NodePort:' | awk '{print $3;}' | cut -f 1 -d '/')
