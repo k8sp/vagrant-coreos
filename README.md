@@ -22,7 +22,7 @@ We need to let `kubectl` know how to connect to the cluster by
 
 1. specifying a configuration file via something like `export
    KUBECONFIG="$(pwd)/kubeconfig"`, and
-1. specifying a *context* in that configuration file via `kubectl
+2. specifying a *context* in that configuration file via `kubectl
    config use-context vagrant-multi`.
 
 I once forgot to update environment variable `KUBECONFIG` and used a
@@ -77,3 +77,43 @@ https://github.com/k8sp/vagrant-coreos/issues/1
  -->
 <!--  LocalWords:  config LoadBalancer ClusterIP NodePort Wildfly VM
  -->
+
+### GFW 
+按照文档：https://coreos.com/kubernetes/docs/latest/kubernetes-on-vagrant-single.html 进行时间的时候，vagrant up 正常，但执行 kubectl get nodes 返回错误:
+`The connection to the server 172.17.4.99:443 was refused - did you specify the right host or port?`
+vagrant ssh 进去之后执行 docker ps 会卡住，没有任何反馈信息，Ctrl +  C 可以终止退出。
+
+> @typhoonzero 描述
+> Found something here: https://github.com/coreos/coreos-kubernetes/blob/master/Documentation/kubernetes-on-vagrant.md
+> NOTE: **When the cluster `is first launched` , it must download all container images for the cluster components** (Kubernetes, dns, heapster, etc). Depending on the speed of your connection, it can take a few minutes before the Kubernetes api-server is available. Before the api-server is running, the kubectl command above may show output similar to:
+>
+> The connection to the server 172.17.4.101:443 was refused - did you specify the right host or port?
+> Maybe we need a different docker registry in China, or try to use proxies?
+>
+
+类似的问题：https://github.com/coreos/coreos-kubernetes/issues/393
+
+初步判断：通过翻墙可以解决下载 Docker Images 失败的问题。
+
+如果说，**第一次vagrant up**的时候并没有翻墙，那么下载**Flannel image**就会失败，导致后面一系列的操作都失败。这个时候，如果没有执行**vagrant destroy**，只是vagrant halt，然后在翻墙的网络下执行vagrant up，那么问题依旧得不到解决。原因是：**When the cluster `is first launched` , it must download all container images for the cluster components。** 
+
+总结：
+
+1. 在GFW环境下，首先要解决翻墙的问题
+2. 在翻墙的网络环境下，需要vagrant destroy 所有的vm，重新执行vagrant up
+
+### 在multi-node 上运行 Guestbook 时，kubectl get pods 返回状态“Pending”
+在执行 `kubectl create -f examples/guestbook/` 之后，kubectl get services 能够返回正常的信息，但执行 kubectl get pods 返回的状态出现 Pending 的时候，可以执行下面的命令查看具体的原因：
+`kubectl describe pod <NAME>`
+最下面会出来一些描述信息，如：
+Node didn't have enough resource: Memory, requested: xxxx, use: xxxx, capacity: xxxxxx
+或：
+Node didn't have enough resource: CPU, requested: xxxx, use: xxxx, capacity: xxxxxx 
+
+这是vm资源不足造成的，通过修改Vagrantfile增加资源：
+
+$worker_vm_memory = 2048
+
+注意：
+
+直接在VBox图形界面里面修改不起作用，每次vagrant up的时候，会被Vagrantfile里面的设置重置。
