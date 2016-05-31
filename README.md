@@ -102,5 +102,18 @@ vagrant ssh 进去之后执行 docker ps 会卡住，没有任何反馈信息，
 1. 在GFW环境下，首先要解决翻墙的问题
 2. 在翻墙的网络环境下，需要vagrant destroy 所有的vm，重新执行vagrant up
 
+### 在multi-node 上运行 Guestbook 时，kubectl get pods 返回状态“Pending”
+在执行 `kubectl create -f examples/guestbook/` 之后，kubectl get services 能够返回正常的信息，但执行 kubectl get pods 返回的状态出现 Pending 的时候，可以执行下面的命令查看具体的原因：
+`kubectl describe pod <NAME>`
+最下面会出来一些描述信息，如：
+Node didn't have enough resource: Memory, requested: xxxx, use: xxxx, capacity: xxxxxx
+或：
+Node didn't have enough resource: CPU, requested: xxxx, use: xxxx, capacity: xxxxxx 
 
+这是vm资源不足造成的，通过修改Vagrantfile增加资源：
 
+$worker_vm_memory = 2048
+
+注意：
+
+直接在VBox图形界面里面修改不起作用，每次vagrant up的时候，会被Vagrantfile里面的设置重置。
